@@ -59,7 +59,18 @@ endif
 
 GET_STATIC_ARG=$(if $(filter $(shell $(CXX) -print-file-name=$1.a),$1.a),,-static-$1)
 # Unix
-ifneq (,$(findstring unix,$(platform)))
+# PS5 (a homebrew title's libretro core): the console's libraries resolve at
+# load time, so no --no-undefined; no LTO; zstd without its trace hooks, weak
+# imports nothing on the console defines.
+ifeq ($(platform), ps5)
+   TARGET := $(TARGET_NAME)_libretro.so
+   fpic := -fPIC
+   SHARED := -shared -Wl,--version-script=link.T
+   FLAGS += -DZSTD_TRACE=0
+   CFLAGS += -DZSTD_TRACE=0
+   CXXFLAGS += -DZSTD_TRACE=0
+   LTO =
+else ifneq (,$(findstring unix,$(platform)))
    GPP_MAJOR := $(shell $(CXX) -dumpversion | cut -d '.' -f 1)
    ifeq ($(GPP_MAJOR),)
       $(error Unable to determine $(CXX) version)
